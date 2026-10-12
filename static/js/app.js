@@ -17,6 +17,7 @@ const State = {
     animFrame: null,
     pulsePhase: 0,
     dataFlowOffset: 0,
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
 };
 
 function escapeHtml(value) {
@@ -375,7 +376,9 @@ function drawCableRoute(segments, activeFaults) {
     ctx.fillText(`CABLE ROUTE — ${State.cableConfig?.cable_type || 'XLPE UNDERGROUND'}`, padL, 20);
 
     // === Data flow animation ===
-    State.dataFlowOffset = (State.dataFlowOffset + 2) % 30;
+    if (!State.reducedMotion) {
+        State.dataFlowOffset = (State.dataFlowOffset + 2) % 30;
+    }
 
     // === Draw cable (main line) ===
     const gradient = ctx.createLinearGradient(padL, 0, padL + routeW, 0);
@@ -425,7 +428,9 @@ function drawCableRoute(segments, activeFaults) {
     ctx.lineDashOffset = 0;
 
     // === Draw sensor nodes ===
-    State.pulsePhase = (State.pulsePhase + 0.08) % (Math.PI * 2);
+    if (!State.reducedMotion) {
+        State.pulsePhase = (State.pulsePhase + 0.08) % (Math.PI * 2);
+    }
 
     for (let i = 0; i < n; i++) {
         const seg = segments[i];
