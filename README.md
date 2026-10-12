@@ -23,6 +23,7 @@
 - [Dashboard Guide](#dashboard-guide)
 - [API Reference](#api-reference)
 - [Development](#development)
+- [Container Deployment](#container-deployment)
 
 ---
 
@@ -298,6 +299,19 @@ node --check static/js/app.js
 ```
 
 Every push and pull request runs these checks on Python 3.10 and 3.13 through GitHub Actions.
+
+---
+
+## 🐳 Container Deployment
+
+```bash
+docker build -t smart-fault-detection .
+docker run --rm -p 5000:5000 \
+  -e SECRET_KEY="replace-with-a-long-random-value" \
+  smart-fault-detection
+```
+
+The image runs as an unprivileged user and includes a health check against `/api/health`. For a network-facing deployment, put the service behind a TLS-terminating reverse proxy and configure `CORS_ALLOWED_ORIGINS` explicitly.
 
 ---
 
