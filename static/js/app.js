@@ -25,7 +25,7 @@ const State = {
 document.addEventListener('DOMContentLoaded', () => {
     initSocket();
     initControls();
-    initSegmentSelect();
+    populateSegmentSelect({ num_segments: 20, total_length: 10 });
     updateClock();
     setInterval(updateClock, 1000);
     resizeCanvases();
@@ -52,6 +52,7 @@ function initSocket() {
     State.socket.on('connected', (msg) => {
         State.cableConfig = msg.config;
         updateCableInfo();
+        populateSegmentSelect(State.cableConfig);
     });
 
     State.socket.on('sensor_data', (data) => {
@@ -59,6 +60,7 @@ function initSocket() {
         if (!State.cableConfig && data.cable_config) {
             State.cableConfig = data.cable_config;
             updateCableInfo();
+            populateSegmentSelect(State.cableConfig);
         }
         updateDashboard(data);
     });
@@ -125,16 +127,25 @@ function initControls() {
     });
 }
 
-function initSegmentSelect() {
+function populateSegmentSelect(config) {
     const sel = document.getElementById('segment-select');
-    for (let i = 0; i < 20; i++) {
+    const selected = sel.value;
+    const segmentCount = config.num_segments;
+    const segmentLength = config.total_length / segmentCount;
+    sel.replaceChildren(new Option('Random', ''));
+    for (let i = 0; i < segmentCount; i++) {
         const opt = document.createElement('option');
         opt.value = i;
-        const start = (i * 0.5).toFixed(1);
-        const end = ((i + 1) * 0.5).toFixed(1);
+        const start = (i * segmentLength).toFixed(1);
+        const end = ((i + 1) * segmentLength).toFixed(1);
         opt.textContent = `Seg ${i} (${start}-${end} km)`;
         sel.appendChild(opt);
     }
+    if ([...sel.options].some((option) => option.value === selected)) {
+        sel.value = selected;
+    }
+    document.getElementById('segment-select-label').textContent =
+        `Segment (0-${segmentCount - 1})`;
 }
 
 // ============================================================
@@ -216,6 +227,8 @@ function updateCableInfo() {
     document.getElementById('info-current').textContent = c.rated_current + ' A';
     document.getElementById('info-segments').textContent = c.num_segments;
     document.getElementById('cable-type-badge').textContent = c.cable_type || 'XLPE 33kV';
+    document.getElementById('current-rated').textContent = c.rated_current + ' A';
+    document.getElementById('voltage-rated').textContent = c.rated_voltage + ' kV';
 }
 
 // ============================================================
@@ -261,6 +274,7 @@ function drawCableRoute(segments, activeFaults) {
     const routeW = W - padL - padR;
     const routeY = H / 2;
     const n = segments.length;
+    const cableLength = State.cableConfig?.total_length || 10;
 
     // === Background elements ===
     // Ground layer
@@ -293,7 +307,7 @@ function drawCableRoute(segments, activeFaults) {
     ctx.textAlign = 'center';
     for (let i = 0; i <= 10; i++) {
         const x = padL + (i / 10) * routeW;
-        ctx.fillText(i + ' km', x, H - 8);
+        ctx.fillText((i / 10 * cableLength).toFixed(1) + ' km', x, H - 8);
 
         // Tick marks
         ctx.strokeStyle = 'rgba(136, 146, 176, 0.15)';
@@ -308,7 +322,7 @@ function drawCableRoute(segments, activeFaults) {
     ctx.fillStyle = 'rgba(0, 212, 255, 0.6)';
     ctx.font = 'bold 10px Inter, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('CABLE ROUTE — 33kV XLPE UNDERGROUND', padL, 20);
+    ctx.fillText(`CABLE ROUTE — ${State.cableConfig?.cable_type || 'XLPE UNDERGROUND'}`, padL, 20);
 
     // === Data flow animation ===
     State.dataFlowOffset = (State.dataFlowOffset + 2) % 30;
@@ -325,7 +339,7 @@ function drawCableRoute(segments, activeFaults) {
     ctx.beginPath();
 
     for (let i = 0; i < n; i++) {
-        const x = padL + (segments[i].mid_km / 10) * routeW;
+        const x = padL + (segments[i].mid_km / cableLength) * routeW;
         const y = routeY + Math.sin(i * 0.3) * 8;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
@@ -337,7 +351,7 @@ function drawCableRoute(segments, activeFaults) {
     ctx.lineWidth = 12;
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
-        const x = padL + (segments[i].mid_km / 10) * routeW;
+        const x = padL + (segments[i].mid_km / cableLength) * routeW;
         const y = routeY + Math.sin(i * 0.3) * 8;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
@@ -351,7 +365,7 @@ function drawCableRoute(segments, activeFaults) {
     ctx.lineDashOffset = -State.dataFlowOffset;
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
-        const x = padL + (segments[i].mid_km / 10) * routeW;
+        const x = padL + (segments[i].mid_km / cableLength) * routeW;
         const y = routeY + Math.sin(i * 0.3) * 8;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
@@ -365,7 +379,7 @@ function drawCableRoute(segments, activeFaults) {
 
     for (let i = 0; i < n; i++) {
         const seg = segments[i];
-        const x = padL + (seg.mid_km / 10) * routeW;
+        const x = padL + (seg.mid_km / cableLength) * routeW;
         const y = routeY + Math.sin(i * 0.3) * 8;
         const health = seg.health;
 
@@ -644,6 +658,7 @@ function drawTemperatureProfile(profile) {
     const padL = 55, padR = 20, padT = 30, padB = 30;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
+    const cableLength = State.cableConfig?.total_length || 10;
 
     let minT = Infinity, maxT = -Infinity;
     for (const p of profile) {
@@ -680,7 +695,7 @@ function drawTemperatureProfile(profile) {
     ctx.textAlign = 'center';
     for (let i = 0; i <= 10; i++) {
         const x = padL + (i / 10) * plotW;
-        ctx.fillText(i + '', x, H - 8);
+        ctx.fillText((i / 10 * cableLength).toFixed(1), x, H - 8);
     }
     ctx.fillText('Distance (km)', padL + plotW / 2, H - 0);
 
@@ -712,7 +727,7 @@ function drawTemperatureProfile(profile) {
 
     for (let i = 0; i < profile.length; i++) {
         const p = profile[i];
-        const x = padL + (p.km / 10) * plotW;
+        const x = padL + (p.km / cableLength) * plotW;
         const y = padT + plotH - ((p.temp - minT) / tempRange) * plotH;
         const barH = padT + plotH - y;
 
@@ -746,7 +761,7 @@ function drawTemperatureProfile(profile) {
     ctx.beginPath();
     for (let i = 0; i < profile.length; i++) {
         const p = profile[i];
-        const x = padL + (p.km / 10) * plotW;
+        const x = padL + (p.km / cableLength) * plotW;
         const y = padT + plotH - ((p.temp - minT) / tempRange) * plotH;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
