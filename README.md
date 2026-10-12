@@ -16,11 +16,13 @@
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Quick Start](#quick-start)
+- [Configuration](#configuration)
 - [Project Structure](#project-structure)
 - [IoT Sensor Simulation](#iot-sensor-simulation)
 - [Fault Detection Methods](#fault-detection-methods)
 - [Dashboard Guide](#dashboard-guide)
 - [API Reference](#api-reference)
+- [Development](#development)
 
 ---
 
@@ -70,7 +72,7 @@ This project simulates an IoT-based system for detecting and locating faults in 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Python 3.8+** installed ([Download Python](https://www.python.org/downloads/))
+- **Python 3.10+** installed ([Download Python](https://www.python.org/downloads/))
 - Make sure "Add Python to PATH" is checked during installation
 
 ### Windows (One-Click)
@@ -104,15 +106,42 @@ Navigate to: **http://localhost:5000**
 
 ---
 
+## ⚙️ Configuration
+
+The application works with safe local defaults. Override these environment variables when needed:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `HOST` | `127.0.0.1` | Server bind address; use `0.0.0.0` inside a container |
+| `PORT` | `5000` | HTTP and WebSocket port |
+| `SECRET_KEY` | Random per process | Stable Flask secret for deployed environments |
+| `CORS_ALLOWED_ORIGINS` | Same-origin only | Comma-separated trusted Socket.IO origins |
+| `LOG_LEVEL` | `INFO` | Python logging level |
+| `DEBUG` | `false` | Enable Flask debug mode for local development only |
+
+PowerShell example:
+
+```powershell
+$env:PORT = "8080"
+$env:SECRET_KEY = "replace-with-a-long-random-value"
+python app.py
+```
+
+---
+
 ## 📁 Project Structure
 
 ```
 smart-cable-fault-detection/
 ├── app.py                      # Flask backend + IoT simulator
 ├── requirements.txt            # Python dependencies (only 3!)
+├── requirements-dev.txt        # Test and lint dependencies
+├── pyproject.toml              # Pytest and Ruff configuration
 ├── start.bat                   # Windows one-click launcher
 ├── start.sh                    # Linux/Mac launcher
 ├── README.md                   # This file
+├── .github/workflows/ci.yml    # Automated quality checks
+├── tests/                      # Simulation, HTTP, and Socket.IO tests
 ├── templates/
 │   └── index.html              # Dashboard HTML
 └── static/
@@ -229,6 +258,20 @@ Where:
 | `/api/config` | GET | Cable configuration |
 | `/api/fault-types` | GET | Available fault types |
 | `/api/data` | GET | Current system data |
+| `/api/health` | GET | Service readiness and fault status |
+| `/api/faults` | POST | Inject a fault; accepts `segment_id` and `fault_type` |
+| `/api/faults` | DELETE | Clear all active faults |
+| `/api/faults/<segment_id>` | DELETE | Clear one segment's fault |
+| `/api/diagnostics/tdr` | POST | Run and return a TDR scan |
+| `/api/diagnostics/murray` | POST | Run a Murray Loop test for an active fault |
+
+Example:
+
+```bash
+curl -X POST http://localhost:5000/api/faults \
+  -H "Content-Type: application/json" \
+  -d '{"segment_id": 4, "fault_type": "water_ingress"}'
+```
 
 ### WebSocket Events
 
@@ -240,6 +283,21 @@ Where:
 | `clear_all_faults` | Client → Server | Clear all faults |
 | `run_tdr` | Client → Server | Run TDR test |
 | `run_murray` | Client → Server | Run Murray Loop test |
+| `operation_error` | Server → Client | Validation or operation failure |
+
+---
+
+## 🧪 Development
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest
+python -m ruff check .
+python -m ruff format --check .
+node --check static/js/app.js
+```
+
+Every push and pull request runs these checks on Python 3.10 and 3.13 through GitHub Actions.
 
 ---
 
