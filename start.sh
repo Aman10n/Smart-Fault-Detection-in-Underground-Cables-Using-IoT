@@ -2,6 +2,9 @@
 # Smart Fault Detection in Underground Cables Using IoT
 # One-click start script for Linux/Mac
 
+set -eu
+cd -- "$(dirname -- "$0")"
+
 echo ""
 echo "  =============================================================="
 echo "   ⚡ Smart Fault Detection in Underground Cables Using IoT"
@@ -33,7 +36,7 @@ source venv/bin/activate
 
 # Install deps
 echo "  📦 Installing dependencies..."
-pip install -r requirements.txt --quiet
+python -m pip install -r requirements.txt --quiet
 echo "  ✓ Dependencies installed"
 echo ""
 
@@ -44,4 +47,4 @@ echo "  Press Ctrl+C to stop the server"
 echo "  =============================================================="
 echo ""
 
-python app.py
+exec python app.py

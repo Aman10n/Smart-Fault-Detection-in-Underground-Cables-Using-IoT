@@ -1,4 +1,6 @@
 @echo off
+setlocal
+pushd "%~dp0"
 title Smart Fault Detection - Underground Cable IoT System
 color 0B
 echo.
@@ -27,6 +29,10 @@ echo.
 if not exist "venv" (
     echo  📦 Creating virtual environment...
     python -m venv venv
+    if errorlevel 1 (
+        echo  ❌ Could not create the virtual environment.
+        exit /b 1
+    )
     echo  ✓ Virtual environment created
     echo.
 )
@@ -36,7 +42,11 @@ call venv\Scripts\activate.bat
 
 :: Install dependencies
 echo  📦 Installing dependencies...
-pip install -r requirements.txt --quiet
+python -m pip install -r requirements.txt --quiet
+if errorlevel 1 (
+    echo  ❌ Dependency installation failed.
+    exit /b 1
+)
 echo  ✓ Dependencies installed
 echo.
 
@@ -50,4 +60,8 @@ echo.
 
 python app.py
 
+set "APP_EXIT_CODE=%ERRORLEVEL%"
+popd
+
 pause
+exit /b %APP_EXIT_CODE%
