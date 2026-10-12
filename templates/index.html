@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Smart Fault Detection in Underground Cables Using IoT - Real-time monitoring dashboard with TDR analysis, Murray Loop testing, and IoT sensor simulation">
+    <title>Smart Fault Detection in Underground Cables | IoT Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header id="main-header">
+        <div class="header-left">
+            <div class="logo-icon">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <circle cx="16" cy="16" r="14" stroke="url(#logoGrad)" stroke-width="2.5" fill="none"/>
+                    <path d="M16 6 L12 16 L18 16 L14 26" stroke="url(#logoGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    <defs>
+                        <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32">
+                            <stop offset="0%" stop-color="#00d4ff"/>
+                            <stop offset="100%" stop-color="#7b61ff"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <div class="header-title">
+                <h1>Smart Fault Detection</h1>
+                <span class="header-subtitle">Underground Cable IoT Monitoring System</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="header-status">
+                <div class="status-dot-wrapper">
+                    <span class="status-dot" id="system-status-dot"></span>
+                </div>
+                <span class="status-text" id="system-status-text">CONNECTING...</span>
+            </div>
+            <div class="header-clock" id="header-clock">--:--:--</div>
+            <div class="header-badge">ECE Project</div>
+        </div>
+    </header>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main id="dashboard">
+
+        <!-- === OVERVIEW CARDS === -->
+        <section class="overview-cards" id="overview-section">
+            <div class="stat-card" id="card-status">
+                <div class="stat-card-icon status-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                </div>
+                <div class="stat-card-content">
+                    <span class="stat-label">System Uptime</span>
+                    <span class="stat-value" id="stat-uptime">00:00:00</span>
+                </div>
+                <div class="stat-card-bar">
+                    <div class="bar-fill bar-cyan" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <div class="stat-card" id="card-sensors">
+                <div class="stat-card-icon sensors-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                </div>
+                <div class="stat-card-content">
+                    <span class="stat-label">Active IoT Sensors</span>
+                    <span class="stat-value" id="stat-sensors">--</span>
+                </div>
+                <div class="stat-card-bar">
+                    <div class="bar-fill bar-green" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <div class="stat-card" id="card-health">
+                <div class="stat-card-icon health-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </div>
+                <div class="stat-card-content">
+                    <span class="stat-label">Cable Health</span>
+                    <span class="stat-value" id="stat-health">--%</span>
+                </div>
+                <div class="stat-card-bar">
+                    <div class="bar-fill bar-green" id="health-bar" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <div class="stat-card" id="card-faults">
+                <div class="stat-card-icon faults-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div class="stat-card-content">
+                    <span class="stat-label">Active Faults</span>
+                    <span class="stat-value" id="stat-faults">0</span>
+                </div>
+                <div class="stat-card-bar">
+                    <div class="bar-fill bar-green" id="fault-bar" style="width: 0%"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- === MAIN GRID === -->
+        <section class="main-grid">
+
+            <!-- Cable Route Visualization -->
+            <div class="panel cable-route-panel" id="cable-route-panel">
+                <div class="panel-header">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h4l3-9 6 18 3-9h4"/></svg>
+                        Underground Cable Route
+                    </h2>
+                    <span class="panel-badge" id="cable-type-badge">XLPE 33kV</span>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="cable-route-canvas"></canvas>
+                </div>
+                <div class="cable-route-legend">
+                    <span class="legend-item"><span class="legend-dot" style="background: #00ff88;"></span> Healthy</span>
+                    <span class="legend-item"><span class="legend-dot" style="background: #ffaa00;"></span> Warning</span>
+                    <span class="legend-item"><span class="legend-dot" style="background: #ff0040;"></span> Fault</span>
+                    <span class="legend-item"><span class="legend-dot legend-dot-pulse" style="background: #ff0040;"></span> Active Fault</span>
+                    <span class="legend-item"><span class="legend-line"></span> Cable</span>
+                    <span class="legend-item"><span class="legend-node"></span> Sensor Node</span>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="panel control-panel" id="control-panel">
+                <div class="panel-header">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        IoT Control Panel
+                    </h2>
+                </div>
+                <div class="control-content">
+                    <!-- Fault Injection -->
+                    <div class="control-group">
+                        <label class="control-label">Fault Type</label>
+                        <select id="fault-type-select" class="control-select">
+                            <option value="">Random</option>
+                            <option value="short_circuit">⚡ Short Circuit</option>
+                            <option value="open_circuit">🔌 Open Circuit</option>
+                            <option value="ground_fault">⏚ Ground Fault</option>
+                            <option value="degradation">📉 Cable Degradation</option>
+                            <option value="water_ingress">💧 Water Ingress</option>
+                            <option value="thermal_fault">🔥 Thermal Hotspot</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Segment (0-19)</label>
+                        <select id="segment-select" class="control-select">
+                            <option value="">Random</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-danger" id="btn-inject-fault">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Inject Fault
+                    </button>
+                    <button class="btn btn-success" id="btn-clear-faults">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Clear All Faults
+                    </button>
+
+                    <div class="control-divider"></div>
+
+                    <!-- Diagnostic Tests -->
+                    <div class="control-group">
+                        <label class="control-label">Diagnostic Tests</label>
+                    </div>
+                    <button class="btn btn-primary" id="btn-run-tdr">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        Run TDR Test
+                    </button>
+                    <button class="btn btn-secondary" id="btn-run-murray">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+                        Murray Loop Test
+                    </button>
+
+                    <div class="control-divider"></div>
+
+                    <!-- Cable Info -->
+                    <div class="cable-info">
+                        <div class="info-row"><span>Cable Type</span><span id="info-cable-type">XLPE 33kV</span></div>
+                        <div class="info-row"><span>Length</span><span id="info-length">10.0 km</span></div>
+                        <div class="info-row"><span>Conductor</span><span id="info-conductor">Copper</span></div>
+                        <div class="info-row"><span>Rated V</span><span id="info-voltage">33 kV</span></div>
+                        <div class="info-row"><span>Rated I</span><span id="info-current">400 A</span></div>
+                        <div class="info-row"><span>Segments</span><span id="info-segments">20</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TDR Waveform -->
+            <div class="panel tdr-panel" id="tdr-panel">
+                <div class="panel-header">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                        TDR Waveform Analysis
+                    </h2>
+                    <span class="panel-badge panel-badge-blue">Time Domain Reflectometry</span>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="tdr-canvas"></canvas>
+                </div>
+                <div class="tdr-info" id="tdr-info">
+                    <span>Pulse velocity: 1.7×10⁸ m/s</span>
+                    <span>Cable impedance: 42.5 Ω</span>
+                    <span id="tdr-fault-info">No fault detected</span>
+                </div>
+            </div>
+
+            <!-- Fault Detection Panel -->
+            <div class="panel fault-panel" id="fault-panel">
+                <div class="panel-header">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Fault Detection
+                    </h2>
+                </div>
+                <div class="fault-content" id="fault-content">
+                    <div class="no-fault-msg" id="no-fault-msg">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        <p>All Clear — No Faults Detected</p>
+                        <span>Cable network operating normally</span>
+                    </div>
+                    <div class="fault-details" id="fault-details" style="display: none;">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Murray Loop Results -->
+                <div class="murray-section" id="murray-section" style="display: none;">
+                    <div class="panel-subheader">
+                        <h3>Murray Loop Bridge Test</h3>
+                    </div>
+                    <div class="murray-results" id="murray-results">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Temperature Profile -->
+            <div class="panel temp-panel" id="temp-panel">
+                <div class="panel-header">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
+                        Temperature Profile Along Cable
+                    </h2>
+                    <span class="panel-badge panel-badge-orange">Max: <span id="max-temp-badge">--</span>°C</span>
+                </div>
+                <div class="canvas-wrapper">
+                    <canvas id="temp-canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Current & Voltage Monitor -->
+            <div class="panel cv-panel" id="cv-panel">
+                <div class="panel-header">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Current & Voltage Monitor
+                    </h2>
+                </div>
+                <div class="cv-grid">
+                    <div class="cv-gauge">
+                        <div class="gauge-label">Avg Current</div>
+                        <div class="gauge-value" id="gauge-current">-- A</div>
+                        <div class="gauge-bar"><div class="gauge-fill gauge-fill-cyan" id="current-gauge-fill"></div></div>
+                        <div class="gauge-range"><span>0 A</span><span id="current-rated">400 A</span></div>
+                    </div>
+                    <div class="cv-gauge">
+                        <div class="gauge-label">Avg Voltage</div>
+                        <div class="gauge-value" id="gauge-voltage">-- kV</div>
+                        <div class="gauge-bar"><div class="gauge-fill gauge-fill-purple" id="voltage-gauge-fill"></div></div>
+                        <div class="gauge-range"><span>0 kV</span><span id="voltage-rated">33 kV</span></div>
+                    </div>
+                    <div class="cv-gauge">
+                        <div class="gauge-label">Max Temperature</div>
+                        <div class="gauge-value" id="gauge-temp">-- °C</div>
+                        <div class="gauge-bar"><div class="gauge-fill gauge-fill-orange" id="temp-gauge-fill"></div></div>
+                        <div class="gauge-range"><span>0 °C</span><span>90 °C</span></div>
+                    </div>
+                    <div class="cv-gauge">
+                        <div class="gauge-label">Avg Insulation R</div>
+                        <div class="gauge-value" id="gauge-insulation">-- MΩ</div>
+                        <div class="gauge-bar"><div class="gauge-fill gauge-fill-green" id="insulation-gauge-fill"></div></div>
+                        <div class="gauge-range"><span>0</span><span>1200 MΩ</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sensor Data Table -->
+            <div class="panel sensor-table-panel" id="sensor-table-panel">
+                <div class="panel-header">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        IoT Sensor Readings
+                    </h2>
+                    <span class="panel-badge" id="sensor-count-badge">120 Sensors</span>
+                </div>
+                <div class="table-wrapper">
+                    <table id="sensor-table">
+                        <thead>
+                            <tr>
+                                <th>Seg</th>
+                                <th>Location</th>
+                                <th>Temp °C</th>
+                                <th>Current A</th>
+                                <th>Voltage kV</th>
+                                <th>Insul. MΩ</th>
+                                <th>Humid %</th>
+                                <th>PD pC</th>
+                                <th>Health</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sensor-table-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Alert Log -->
+            <div class="panel alert-log-panel" id="alert-log-panel">
+                <div class="panel-header">
+                    <h2>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        Alert Log
+                    </h2>
+                    <span class="panel-badge panel-badge-red" id="alert-count-badge">0 Alerts</span>
+                </div>
+                <div class="alert-log-content" id="alert-log-content">
+                    <div class="no-alerts" id="no-alerts-msg">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8892b0" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        <p>No alerts recorded</p>
+                    </div>
+                    <!-- Alert items populated by JS -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- ===== FAULT ALERT OVERLAY ===== -->
+    <div class="fault-overlay" id="fault-overlay">
+        <div class="fault-overlay-content">
+            <div class="fault-overlay-icon" id="fault-overlay-icon">⚡</div>
+            <h2 id="fault-overlay-title">FAULT DETECTED</h2>
+            <p id="fault-overlay-desc">--</p>
+            <div class="fault-overlay-details">
+                <span id="fault-overlay-location">Location: -- km</span>
+                <span id="fault-overlay-severity">Severity: --</span>
+            </div>
+            <button class="btn btn-primary" id="fault-overlay-dismiss">Acknowledge</button>
+        </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer id="main-footer">
+        <span>Smart Fault Detection in Underground Cables Using IoT</span>
+        <span>ECE Department — Final Year Project © 2024</span>
+        <span>IoT Simulation Active • <span id="footer-timestamp">--</span></span>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
