@@ -725,6 +725,48 @@ def parse_fault_type(value):
     return value
 
 
+@app.post('/api/faults')
+def api_inject_fault():
+    """Inject a simulated fault through the HTTP API."""
+    payload = request.get_json(silent=True) or {}
+    try:
+        segment_id = parse_segment_id(payload.get('segment_id'))
+        fault_type = parse_fault_type(payload.get('fault_type'))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    fault_info = network.inject_fault(segment_id, fault_type)
+    if not fault_info:
+        return jsonify({'error': 'No available segment for fault injection'}), 409
+
+    socketio.emit('fault_alert', fault_info)
+    socketio.emit('sensor_data', network.get_all_data())
+    return jsonify(fault_info), 201
+
+
+@app.delete('/api/faults/<int:segment_id>')
+def api_clear_fault(segment_id):
+    """Clear a fault on one segment through the HTTP API."""
+    try:
+        segment_id = parse_segment_id(segment_id, allow_none=False)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+    network.clear_fault(segment_id)
+    socketio.emit('fault_cleared', {'segment_id': segment_id})
+    socketio.emit('sensor_data', network.get_all_data())
+    return '', 204
+
+
+@app.delete('/api/faults')
+def api_clear_all_faults():
+    """Clear every simulated fault through the HTTP API."""
+    network.clear_fault()
+    socketio.emit('all_faults_cleared', {})
+    socketio.emit('sensor_data', network.get_all_data())
+    return '', 204
+
+
 # ============================================================
 # SOCKET.IO EVENT HANDLERS
 # ============================================================
