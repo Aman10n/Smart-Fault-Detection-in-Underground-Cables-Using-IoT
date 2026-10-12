@@ -725,6 +725,18 @@ def index():
     return render_template('index.html')
 
 
+@app.after_request
+def add_response_headers(response):
+    """Apply baseline browser protections and prevent stale telemetry APIs."""
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'DENY')
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    response.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    if request.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
 @app.route('/api/config')
 def api_config():
     return jsonify(CABLE_CONFIG)
