@@ -23,6 +23,7 @@
 
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
+import logging
 import os
 import random
 import math
@@ -32,6 +33,9 @@ import threading
 from datetime import datetime
 from collections import deque
 from functools import wraps
+
+
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # FLASK APPLICATION SETUP
@@ -489,8 +493,8 @@ class CableNetwork:
         # Initial TDR scan (clean cable)
         self.tdr_waveform = TDRSimulator.generate_waveform(CABLE_CONFIG['total_length'])
         
-        print(f"  [OK] Initialized {len(self.segments)} cable segments")
-        print(f"  [OK] Deployed {len(self.segments) * 6} IoT sensors")
+        logger.info("Initialized %s cable segments", len(self.segments))
+        logger.info("Deployed %s IoT sensors", len(self.segments) * 6)
     
     @synchronized
     def inject_fault(self, segment_id=None, fault_type=None):
@@ -655,8 +659,8 @@ def simulation_loop():
             data = network.get_all_data()
             socketio.emit('sensor_data', data)
             socketio.sleep(1)
-        except Exception as e:
-            print(f"  [WARN] Simulation error: {e}")
+        except Exception:
+            logger.exception("Simulation update failed")
             socketio.sleep(1)
 
 
@@ -712,14 +716,14 @@ def parse_fault_type(value):
 # ============================================================
 @socketio.on('connect')
 def handle_connect():
-    print("  [CONN] Client connected")
+    logger.info("Dashboard client connected")
     emit('connected', {'status': 'ok', 'config': CABLE_CONFIG})
     emit('sensor_data', network.get_all_data())
 
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    print("  [DISC] Client disconnected")
+    logger.info("Dashboard client disconnected")
 
 
 @socketio.on('inject_fault')
@@ -738,7 +742,11 @@ def handle_inject_fault(data):
     if fault_info:
         emit('fault_alert', fault_info, broadcast=True)
         emit('sensor_data', network.get_all_data(), broadcast=True)
-        print(f"  [FAULT] INJECTED: {fault_info['fault_name']} at {fault_info['location_km']} km")
+        logger.warning(
+            "Fault injected: %s at %.2f km",
+            fault_info['fault_name'],
+            fault_info['location_km'],
+        )
     else:
         emit('operation_error', {'message': 'Could not inject fault; the segment may already be faulted'})
 
@@ -755,7 +763,7 @@ def handle_clear_fault(data):
     network.clear_fault(segment_id)
     emit('fault_cleared', {'segment_id': segment_id}, broadcast=True)
     emit('sensor_data', network.get_all_data(), broadcast=True)
-    print(f"  [CLEAR] Fault cleared: segment {segment_id}")
+    logger.info("Fault cleared for segment %s", segment_id)
 
 
 @socketio.on('clear_all_faults')
@@ -764,7 +772,7 @@ def handle_clear_all(data=None):
     network.clear_fault(None)
     emit('all_faults_cleared', {}, broadcast=True)
     emit('sensor_data', network.get_all_data(), broadcast=True)
-    print("  [CLEAR] All faults cleared")
+    logger.info("All faults cleared")
 
 
 @socketio.on('run_tdr')
@@ -784,7 +792,7 @@ def handle_run_tdr(data=None):
     
     network.tdr_waveform = waveform
     emit('tdr_result', {'waveform': waveform}, broadcast=True)
-    print("  [TDR] Test completed")
+    logger.info("TDR test completed")
 
 
 @socketio.on('run_murray')
@@ -803,7 +811,7 @@ def handle_run_murray(data=None):
         result['fault_severity'] = fault['severity']
         network.murray_result = result
         emit('murray_result', result, broadcast=True)
-        print(f"  [MURRAY] Test: fault at {result['measured_distance']} km")
+        logger.info("Murray Loop test located fault at %.3f km", result['measured_distance'])
     else:
         emit('murray_result', {'error': 'No active fault to locate'}, broadcast=True)
 
@@ -812,6 +820,10 @@ def handle_run_murray(data=None):
 # MAIN ENTRY POINT
 # ============================================================
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=os.getenv('LOG_LEVEL', 'INFO').upper(),
+        format='%(asctime)s %(levelname)s %(name)s: %(message)s',
+    )
     print("\n" + "=" * 62)
     print("  Smart Fault Detection in Underground Cables Using IoT")
     print("  IoT Sensor Simulation System")
