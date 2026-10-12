@@ -38,6 +38,28 @@ from functools import wraps
 logger = logging.getLogger(__name__)
 API_VERSION = '1.0.0'
 
+
+def env_flag(name, default=False):
+    """Read a conventional boolean value from the environment."""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def env_port(name, default):
+    """Read and validate a TCP port from the environment."""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        port = int(value)
+    except ValueError as exc:
+        raise ValueError(f'{name} must be an integer') from exc
+    if not 1 <= port <= 65535:
+        raise ValueError(f'{name} must be between 1 and 65535')
+    return port
+
 # ============================================================
 # FLASK APPLICATION SETUP
 # ============================================================
@@ -915,7 +937,11 @@ if __name__ == '__main__':
     print(f"  IoT Sensors   : {CABLE_CONFIG['num_segments'] * 6}")
     print(f"  Rated Voltage : {CABLE_CONFIG['rated_voltage']} kV")
     print(f"  Rated Current : {CABLE_CONFIG['rated_current']} A")
-    print(f"\n  Dashboard     : http://localhost:5000")
+    server_host = os.getenv('HOST', '127.0.0.1')
+    server_port = env_port('PORT', 5000)
+    debug_enabled = env_flag('DEBUG')
+    display_host = 'localhost' if server_host in {'0.0.0.0', '127.0.0.1'} else server_host
+    print(f"\n  Dashboard     : http://{display_host}:{server_port}")
     print("=" * 62 + "\n")
     
     # Start IoT simulation in background thread
@@ -923,4 +949,10 @@ if __name__ == '__main__':
     sim_thread.start()
     print("  [OK] IoT Simulation Engine started (1 Hz update rate)\n")
     
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(
+        app,
+        host=server_host,
+        port=server_port,
+        debug=debug_enabled,
+        allow_unsafe_werkzeug=env_flag('ALLOW_UNSAFE_WERKZEUG', True),
+    )
