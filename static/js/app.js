@@ -23,6 +23,7 @@ const State = {
 // INITIALIZATION
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+    setControlsEnabled(false);
     initSocket();
     initControls();
     populateSegmentSelect({ num_segments: 20, total_length: 10 });
@@ -47,12 +48,20 @@ function initSocket() {
     State.socket.on('disconnect', () => {
         State.connected = false;
         updateConnectionStatus('OFFLINE', '');
+        setControlsEnabled(false);
+        showNotification('Connection lost. Retrying automatically…', 'warning');
+    });
+
+    State.socket.on('connect_error', () => {
+        updateConnectionStatus('RECONNECTING…', '');
+        setControlsEnabled(false);
     });
 
     State.socket.on('connected', (msg) => {
         State.cableConfig = msg.config;
         updateCableInfo();
         populateSegmentSelect(State.cableConfig);
+        setControlsEnabled(true);
     });
 
     State.socket.on('sensor_data', (data) => {
@@ -86,6 +95,26 @@ function initSocket() {
     State.socket.on('murray_result', (data) => {
         updateMurrayResults(data);
     });
+
+    State.socket.on('operation_error', (data) => {
+        showNotification(data?.message || 'The requested operation failed.', 'error');
+    });
+}
+
+function setControlsEnabled(enabled) {
+    document.querySelectorAll('#control-panel button, #control-panel select').forEach((control) => {
+        control.disabled = !enabled;
+    });
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.getElementById('app-notification');
+    notification.textContent = message;
+    notification.className = `app-notification ${type} visible`;
+    window.clearTimeout(State.notificationTimer);
+    State.notificationTimer = window.setTimeout(() => {
+        notification.classList.remove('visible');
+    }, 4500);
 }
 
 function updateConnectionStatus(text, className) {

@@ -1252,6 +1252,38 @@ body::after {
     }
 }
 
+.app-notification {
+    position: fixed;
+    top: 76px;
+    right: 20px;
+    z-index: 1100;
+    max-width: min(380px, calc(100vw - 40px));
+    padding: 12px 16px;
+    border: 1px solid var(--cyan);
+    border-radius: 8px;
+    background: rgba(9, 14, 28, 0.96);
+    color: var(--text-primary);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.app-notification.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.app-notification.warning { border-color: var(--orange); }
+.app-notification.error { border-color: var(--red); }
+
+button:disabled,
+select:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
 
 /* ============================================================
    UTILITY ANIMATIONS
