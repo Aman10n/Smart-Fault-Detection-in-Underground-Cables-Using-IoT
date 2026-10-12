@@ -627,6 +627,36 @@ class CableNetwork:
             {'km': round(s.mid_km, 2), 'temp': round(s.temperature, 1), 'fault': s.fault_active}
             for s in self.segments
         ]
+
+    @synchronized
+    def run_tdr(self):
+        """Run a TDR scan against the first active fault, if present."""
+        if self.active_faults:
+            fault = next(iter(self.active_faults.values()))
+            segment = self.segments[fault['segment_id']]
+            self.tdr_waveform = TDRSimulator.generate_waveform(
+                CABLE_CONFIG['total_length'], segment.mid_km, segment.fault_type
+            )
+        else:
+            self.tdr_waveform = TDRSimulator.generate_waveform(CABLE_CONFIG['total_length'])
+        return self.tdr_waveform
+
+    @synchronized
+    def run_murray(self):
+        """Run a Murray Loop test against the first active fault."""
+        if not self.active_faults:
+            return None
+        fault = next(iter(self.active_faults.values()))
+        segment = self.segments[fault['segment_id']]
+        result = MurrayLoopTest.calculate(
+            CABLE_CONFIG['total_length'],
+            segment.mid_km,
+            CABLE_CONFIG['resistance_per_km'],
+        )
+        result['fault_type'] = fault['fault_name']
+        result['fault_severity'] = fault['severity']
+        self.murray_result = result
+        return result
     
     @synchronized
     def get_all_data(self):
@@ -767,6 +797,22 @@ def api_clear_all_faults():
     return '', 204
 
 
+@app.post('/api/diagnostics/tdr')
+def api_run_tdr():
+    waveform = network.run_tdr()
+    socketio.emit('tdr_result', {'waveform': waveform})
+    return jsonify({'waveform': waveform})
+
+
+@app.post('/api/diagnostics/murray')
+def api_run_murray():
+    result = network.run_murray()
+    if result is None:
+        return jsonify({'error': 'No active fault to locate'}), 409
+    socketio.emit('murray_result', result)
+    return jsonify(result)
+
+
 # ============================================================
 # SOCKET.IO EVENT HANDLERS
 # ============================================================
@@ -834,19 +880,7 @@ def handle_clear_all(data=None):
 @socketio.on('run_tdr')
 def handle_run_tdr(data=None):
     """Run TDR test on demand"""
-    active = list(network.active_faults.values())
-    if active:
-        fault = active[0]
-        seg = network.segments[fault['segment_id']]
-        waveform = TDRSimulator.generate_waveform(
-            CABLE_CONFIG['total_length'],
-            seg.mid_km,
-            seg.fault_type
-        )
-    else:
-        waveform = TDRSimulator.generate_waveform(CABLE_CONFIG['total_length'])
-    
-    network.tdr_waveform = waveform
+    waveform = network.run_tdr()
     emit('tdr_result', {'waveform': waveform}, broadcast=True)
     logger.info("TDR test completed")
 
@@ -854,18 +888,8 @@ def handle_run_tdr(data=None):
 @socketio.on('run_murray')
 def handle_run_murray(data=None):
     """Run Murray Loop test on demand"""
-    active = list(network.active_faults.values())
-    if active:
-        fault = active[0]
-        seg = network.segments[fault['segment_id']]
-        result = MurrayLoopTest.calculate(
-            CABLE_CONFIG['total_length'],
-            seg.mid_km,
-            CABLE_CONFIG['resistance_per_km']
-        )
-        result['fault_type'] = fault['fault_name']
-        result['fault_severity'] = fault['severity']
-        network.murray_result = result
+    result = network.run_murray()
+    if result:
         emit('murray_result', result, broadcast=True)
         logger.info("Murray Loop test located fault at %.3f km", result['measured_distance'])
     else:
