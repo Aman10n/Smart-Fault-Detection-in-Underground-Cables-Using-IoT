@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+    <a class="skip-link" href="#dashboard">Skip to dashboard</a>
     <div id="app-notification" class="app-notification" role="status" aria-live="polite"></div>
 
     <!-- ===== HEADER ===== -->
@@ -34,7 +35,7 @@
             </div>
         </div>
         <div class="header-right">
-            <div class="header-status">
+            <div class="header-status" role="status" aria-live="polite">
                 <div class="status-dot-wrapper">
                     <span class="status-dot" id="system-status-dot"></span>
                 </div>
@@ -116,7 +117,7 @@
                     <span class="panel-badge" id="cable-type-badge">XLPE 33kV</span>
                 </div>
                 <div class="canvas-wrapper">
-                    <canvas id="cable-route-canvas"></canvas>
+                    <canvas id="cable-route-canvas" role="img" aria-label="Cable route and sensor health visualization"></canvas>
                 </div>
                 <div class="cable-route-legend">
                     <span class="legend-item"><span class="legend-dot" style="background: #00ff88;"></span> Healthy</span>
@@ -139,7 +140,7 @@
                 <div class="control-content">
                     <!-- Fault Injection -->
                     <div class="control-group">
-                        <label class="control-label">Fault Type</label>
+                        <label class="control-label" for="fault-type-select">Fault Type</label>
                         <select id="fault-type-select" class="control-select">
                             <option value="">Random</option>
                             <option value="short_circuit">⚡ Short Circuit</option>
@@ -157,11 +158,11 @@
                         </select>
                     </div>
 
-                    <button class="btn btn-danger" id="btn-inject-fault">
+                    <button type="button" class="btn btn-danger" id="btn-inject-fault">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                         Inject Fault
                     </button>
-                    <button class="btn btn-success" id="btn-clear-faults">
+                    <button type="button" class="btn btn-success" id="btn-clear-faults">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                         Clear All Faults
                     </button>
@@ -172,11 +173,11 @@
                     <div class="control-group">
                         <label class="control-label">Diagnostic Tests</label>
                     </div>
-                    <button class="btn btn-primary" id="btn-run-tdr">
+                    <button type="button" class="btn btn-primary" id="btn-run-tdr">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                         Run TDR Test
                     </button>
-                    <button class="btn btn-secondary" id="btn-run-murray">
+                    <button type="button" class="btn btn-secondary" id="btn-run-murray">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
                         Murray Loop Test
                     </button>
@@ -205,7 +206,7 @@
                     <span class="panel-badge panel-badge-blue">Time Domain Reflectometry</span>
                 </div>
                 <div class="canvas-wrapper">
-                    <canvas id="tdr-canvas"></canvas>
+                    <canvas id="tdr-canvas" role="img" aria-label="Time domain reflectometry waveform"></canvas>
                 </div>
                 <div class="tdr-info" id="tdr-info">
                     <span>Pulse velocity: 1.7×10⁸ m/s</span>
@@ -254,7 +255,7 @@
                     <span class="panel-badge panel-badge-orange">Max: <span id="max-temp-badge">--</span>°C</span>
                 </div>
                 <div class="canvas-wrapper">
-                    <canvas id="temp-canvas"></canvas>
+                    <canvas id="temp-canvas" role="img" aria-label="Cable temperature profile chart"></canvas>
                 </div>
             </div>
 
@@ -305,6 +306,7 @@
                 </div>
                 <div class="table-wrapper">
                     <table id="sensor-table">
+                        <caption class="sr-only">Live readings for each underground cable sensor segment</caption>
                         <thead>
                             <tr>
                                 <th>Seg</th>
@@ -348,8 +350,8 @@
     </main>
 
     <!-- ===== FAULT ALERT OVERLAY ===== -->
-    <div class="fault-overlay" id="fault-overlay">
-        <div class="fault-overlay-content">
+    <div class="fault-overlay" id="fault-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="fault-overlay-title">
+        <div class="fault-overlay-content" tabindex="-1">
             <div class="fault-overlay-icon" id="fault-overlay-icon">⚡</div>
             <h2 id="fault-overlay-title">FAULT DETECTED</h2>
             <p id="fault-overlay-desc">--</p>
@@ -357,7 +359,7 @@
                 <span id="fault-overlay-location">Location: -- km</span>
                 <span id="fault-overlay-severity">Severity: --</span>
             </div>
-            <button class="btn btn-primary" id="fault-overlay-dismiss">Acknowledge</button>
+            <button type="button" class="btn btn-primary" id="fault-overlay-dismiss">Acknowledge</button>
         </div>
     </div>
 

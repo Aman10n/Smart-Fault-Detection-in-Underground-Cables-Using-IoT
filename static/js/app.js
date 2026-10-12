@@ -171,6 +171,10 @@ function initControls() {
     document.getElementById('fault-overlay-dismiss').addEventListener('click', () => {
         hideFaultOverlay();
     });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') hideFaultOverlay();
+    });
 }
 
 function populateSegmentSelect(config) {
@@ -1044,6 +1048,8 @@ function showFaultOverlay(fault) {
     document.getElementById('fault-overlay-location').textContent = 'Location: ' + fault.location_km + ' km (Segment #' + fault.segment_id + ')';
     document.getElementById('fault-overlay-severity').textContent = 'Severity: ' + fault.severity;
     overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.querySelector('.fault-overlay-content').focus();
 
     // Auto-dismiss after 5 seconds
     setTimeout(() => {
@@ -1052,5 +1058,7 @@ function showFaultOverlay(fault) {
 }
 
 function hideFaultOverlay() {
-    document.getElementById('fault-overlay').classList.remove('active');
+    const overlay = document.getElementById('fault-overlay');
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden', 'true');
 }
