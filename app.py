@@ -36,6 +36,7 @@ from functools import wraps
 
 
 logger = logging.getLogger(__name__)
+API_VERSION = '1.0.0'
 
 # ============================================================
 # FLASK APPLICATION SETUP
@@ -685,6 +686,19 @@ def api_fault_types():
 @app.route('/api/data')
 def api_data():
     return jsonify(network.get_all_data())
+
+
+@app.route('/api/health')
+def api_health():
+    """Lightweight readiness endpoint for operators and container probes."""
+    overview = network.get_overview()
+    return jsonify({
+        'status': 'degraded' if overview['active_fault_count'] else 'healthy',
+        'service': 'smart-fault-detection',
+        'version': API_VERSION,
+        'uptime_seconds': overview['uptime_seconds'],
+        'active_faults': overview['active_fault_count'],
+    })
 
 
 def parse_segment_id(value, *, allow_none=True):
