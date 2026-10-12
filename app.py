@@ -23,11 +23,12 @@
 
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
+import os
 import random
 import math
+import secrets
 import time
 import threading
-import json
 from datetime import datetime
 from collections import deque
 
@@ -35,8 +36,16 @@ from collections import deque
 # FLASK APPLICATION SETUP
 # ============================================================
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'smart-cable-fault-iot-2024'
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or secrets.token_hex(32)
+
+socketio_options = {'async_mode': 'threading'}
+allowed_origins = os.getenv('CORS_ALLOWED_ORIGINS')
+if allowed_origins:
+    socketio_options['cors_allowed_origins'] = [
+        origin.strip() for origin in allowed_origins.split(',') if origin.strip()
+    ]
+
+socketio = SocketIO(app, **socketio_options)
 
 # ============================================================
 # CABLE NETWORK CONFIGURATION (33kV XLPE Underground Cable)
