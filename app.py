@@ -492,6 +492,9 @@ class CableNetwork:
         
         if fault_type is None:
             fault_type = random.choice(list(FAULT_TYPES.keys()))
+
+        if fault_type not in FAULT_TYPES:
+            return None
         
         if segment_id < 0 or segment_id >= len(self.segments):
             return None
@@ -663,6 +666,30 @@ def api_data():
     return jsonify(network.get_all_data())
 
 
+def parse_segment_id(value, *, allow_none=True):
+    """Validate and normalize a segment identifier received from a client."""
+    if value is None and allow_none:
+        return None
+    if isinstance(value, bool):
+        raise ValueError('Segment ID must be an integer')
+    try:
+        segment_id = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError('Segment ID must be an integer') from exc
+    if not 0 <= segment_id < len(network.segments):
+        raise ValueError(f'Segment ID must be between 0 and {len(network.segments) - 1}')
+    return segment_id
+
+
+def parse_fault_type(value):
+    """Validate a requested fault type, allowing None for a random fault."""
+    if value in (None, ''):
+        return None
+    if value not in FAULT_TYPES:
+        raise ValueError('Unknown fault type')
+    return value
+
+
 # ============================================================
 # SOCKET.IO EVENT HANDLERS
 # ============================================================
@@ -681,8 +708,13 @@ def handle_disconnect():
 @socketio.on('inject_fault')
 def handle_inject_fault(data):
     """Handle fault injection request from dashboard"""
-    segment_id = data.get('segment_id')
-    fault_type = data.get('fault_type')
+    data = data if isinstance(data, dict) else {}
+    try:
+        segment_id = parse_segment_id(data.get('segment_id'))
+        fault_type = parse_fault_type(data.get('fault_type'))
+    except ValueError as exc:
+        emit('operation_error', {'message': str(exc)})
+        return
     
     fault_info = network.inject_fault(segment_id, fault_type)
     
@@ -691,13 +723,18 @@ def handle_inject_fault(data):
         emit('sensor_data', network.get_all_data(), broadcast=True)
         print(f"  [FAULT] INJECTED: {fault_info['fault_name']} at {fault_info['location_km']} km")
     else:
-        emit('error', {'message': 'Could not inject fault'})
+        emit('operation_error', {'message': 'Could not inject fault; the segment may already be faulted'})
 
 
 @socketio.on('clear_fault')
 def handle_clear_fault(data):
     """Handle fault clearing request"""
-    segment_id = data.get('segment_id')
+    data = data if isinstance(data, dict) else {}
+    try:
+        segment_id = parse_segment_id(data.get('segment_id'), allow_none=False)
+    except ValueError as exc:
+        emit('operation_error', {'message': str(exc)})
+        return
     network.clear_fault(segment_id)
     emit('fault_cleared', {'segment_id': segment_id}, broadcast=True)
     emit('sensor_data', network.get_all_data(), broadcast=True)
