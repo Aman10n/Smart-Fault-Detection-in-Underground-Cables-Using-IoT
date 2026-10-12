@@ -19,6 +19,23 @@ const State = {
     dataFlowOffset: 0,
 };
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function safeColor(value, fallback = '#ff0040') {
+    return /^#[0-9a-f]{6}$/i.test(value || '') ? value : fallback;
+}
+
+function clampPercent(value) {
+    return Math.max(0, Math.min(100, Number(value) || 0));
+}
+
 // ============================================================
 // INITIALIZATION
 // ============================================================
@@ -851,25 +868,25 @@ function updateSensorTable(segments) {
         const healthBarColor = seg.health > 80 ? 'bar-green' : seg.health > 50 ? 'bar-orange' : 'bar-red';
 
         html += `<tr class="${rowClass}">
-            <td>${seg.id}</td>
-            <td>${seg.start_km.toFixed(1)} - ${seg.end_km.toFixed(1)} km</td>
-            <td style="color: ${seg.temperature > 60 ? '#ff3300' : seg.temperature > 40 ? '#ffaa00' : '#e8ecf4'}">${seg.temperature}</td>
-            <td style="color: ${seg.current > 500 ? '#ff0040' : '#e8ecf4'}">${seg.current}</td>
-            <td>${seg.voltage}</td>
-            <td style="color: ${seg.insulation_resistance < 100 ? '#ff0040' : '#e8ecf4'}">${seg.insulation_resistance}</td>
-            <td>${seg.humidity}</td>
-            <td style="color: ${seg.partial_discharge > 20 ? '#ff9d00' : '#e8ecf4'}">${seg.partial_discharge}</td>
+            <td>${escapeHtml(seg.id)}</td>
+            <td>${escapeHtml(seg.start_km.toFixed(1))} - ${escapeHtml(seg.end_km.toFixed(1))} km</td>
+            <td style="color: ${seg.temperature > 60 ? '#ff3300' : seg.temperature > 40 ? '#ffaa00' : '#e8ecf4'}">${escapeHtml(seg.temperature)}</td>
+            <td style="color: ${seg.current > 500 ? '#ff0040' : '#e8ecf4'}">${escapeHtml(seg.current)}</td>
+            <td>${escapeHtml(seg.voltage)}</td>
+            <td style="color: ${seg.insulation_resistance < 100 ? '#ff0040' : '#e8ecf4'}">${escapeHtml(seg.insulation_resistance)}</td>
+            <td>${escapeHtml(seg.humidity)}</td>
+            <td style="color: ${seg.partial_discharge > 20 ? '#ff9d00' : '#e8ecf4'}">${escapeHtml(seg.partial_discharge)}</td>
             <td>
                 <div class="health-cell">
-                    <span style="color: ${healthColor}">${seg.health}%</span>
+                    <span style="color: ${healthColor}">${escapeHtml(seg.health)}%</span>
                     <div class="health-mini-bar">
-                        <div class="health-mini-fill ${healthBarColor}" style="width: ${seg.health}%"></div>
+                        <div class="health-mini-fill ${healthBarColor}" style="width: ${clampPercent(seg.health)}%"></div>
                     </div>
                 </div>
             </td>
             <td>
                 ${isFault
-                    ? `<span class="status-badge status-fault">${seg.fault_info ? seg.fault_info.icon : '⚡'} FAULT</span>`
+                    ? `<span class="status-badge status-fault">${escapeHtml(seg.fault_info ? seg.fault_info.icon : '⚡')} FAULT</span>`
                     : '<span class="status-badge status-ok">✓ OK</span>'
                 }
             </td>
@@ -900,29 +917,30 @@ function updateFaultPanel(activeFaults) {
         const sevClass = fault.severity === 'CRITICAL' ? 'severity-critical'
             : fault.severity === 'HIGH' ? 'severity-high' : 'severity-medium';
 
+        const color = safeColor(fault.color);
         html += `
-        <div class="fault-card" style="border-color: ${fault.color}">
+        <div class="fault-card" style="border-color: ${color}">
             <div class="fault-card-header">
-                <span class="fault-card-icon">${fault.icon}</span>
-                <span class="fault-card-title" style="color: ${fault.color}">${fault.fault_name}</span>
-                <span class="fault-card-severity ${sevClass}">${fault.severity}</span>
+                <span class="fault-card-icon">${escapeHtml(fault.icon)}</span>
+                <span class="fault-card-title" style="color: ${color}">${escapeHtml(fault.fault_name)}</span>
+                <span class="fault-card-severity ${sevClass}">${escapeHtml(fault.severity)}</span>
             </div>
             <div class="fault-card-detail">
-                <span>Fault ID</span><span>${fault.id}</span>
+                <span>Fault ID</span><span>${escapeHtml(fault.id)}</span>
             </div>
             <div class="fault-card-detail">
-                <span>Location</span><span>${fault.location_km} km</span>
+                <span>Location</span><span>${escapeHtml(fault.location_km)} km</span>
             </div>
             <div class="fault-card-detail">
-                <span>Segment</span><span>#${fault.segment_id}</span>
+                <span>Segment</span><span>#${escapeHtml(fault.segment_id)}</span>
             </div>
             <div class="fault-card-detail">
-                <span>Detected At</span><span>${fault.timestamp}</span>
+                <span>Detected At</span><span>${escapeHtml(fault.timestamp)}</span>
             </div>
             <div class="fault-card-detail">
-                <span>Status</span><span style="color: ${fault.color}">${fault.status}</span>
+                <span>Status</span><span style="color: ${color}">${escapeHtml(fault.status)}</span>
             </div>
-            <div class="fault-card-desc">${fault.description}</div>
+            <div class="fault-card-desc">${escapeHtml(fault.description)}</div>
         </div>`;
     }
     faultDetails.innerHTML = html;
@@ -937,7 +955,7 @@ function updateMurrayResults(result) {
 
     if (result.error) {
         section.style.display = 'block';
-        container.innerHTML = `<div style="text-align: center; padding: 12px; color: var(--text-secondary); font-size: 0.78rem;">${result.error}</div>`;
+        container.innerHTML = `<div class="inline-message">${escapeHtml(result.error)}</div>`;
         return;
     }
 
@@ -945,38 +963,38 @@ function updateMurrayResults(result) {
     container.innerHTML = `
         <div class="murray-row">
             <span>Fault Type</span>
-            <span style="color: #ff6600">${result.fault_type || '--'}</span>
+            <span style="color: #ff6600">${escapeHtml(result.fault_type || '--')}</span>
         </div>
         <div class="murray-row">
             <span>Measured Distance</span>
-            <span style="color: var(--cyan)">${result.measured_distance} km</span>
+            <span style="color: var(--cyan)">${escapeHtml(result.measured_distance)} km</span>
         </div>
         <div class="murray-row">
             <span>Actual Distance</span>
-            <span>${result.actual_distance} km</span>
+            <span>${escapeHtml(result.actual_distance)} km</span>
         </div>
         <div class="murray-row">
             <span>Error</span>
-            <span style="color: ${result.error_km < 0.1 ? 'var(--green)' : 'var(--orange)'}">${result.error_meters} m (${result.error_percent}%)</span>
+            <span style="color: ${result.error_km < 0.1 ? 'var(--green)' : 'var(--orange)'}">${escapeHtml(result.error_meters)} m (${escapeHtml(result.error_percent)}%)</span>
         </div>
         <div class="murray-row">
             <span>R_a (Bridge)</span>
-            <span>${result.R_a} Ω</span>
+            <span>${escapeHtml(result.R_a)} Ω</span>
         </div>
         <div class="murray-row">
             <span>R_b (Bridge)</span>
-            <span>${result.R_b} Ω</span>
+            <span>${escapeHtml(result.R_b)} Ω</span>
         </div>
         <div class="murray-row">
             <span>R_loop</span>
-            <span>${result.R_loop} Ω</span>
+            <span>${escapeHtml(result.R_loop)} Ω</span>
         </div>
         <div class="murray-row">
             <span>Bridge Ratio</span>
-            <span>${result.bridge_ratio}</span>
+            <span>${escapeHtml(result.bridge_ratio)}</span>
         </div>
         <div class="murray-accuracy">
-            <div class="accuracy-value">${result.accuracy}%</div>
+            <div class="accuracy-value">${escapeHtml(result.accuracy)}%</div>
             <div class="accuracy-label">Location Accuracy</div>
         </div>
     `;
@@ -1001,13 +1019,14 @@ function updateAlertLog(faultLog) {
 
     let html = '';
     for (const fault of faultLog.slice(0, 20)) {
+        const color = safeColor(fault.color);
         html += `
-        <div class="alert-item" style="border-color: ${fault.color}">
-            <span class="alert-item-icon">${fault.icon}</span>
+        <div class="alert-item" style="border-color: ${color}">
+            <span class="alert-item-icon">${escapeHtml(fault.icon)}</span>
             <div class="alert-item-content">
-                <div class="alert-item-title" style="color: ${fault.color}">${fault.fault_name}</div>
-                <div class="alert-item-detail">Segment #${fault.segment_id} • ${fault.location_km} km • ${fault.severity}</div>
-                <div class="alert-item-time">${fault.timestamp}</div>
+                <div class="alert-item-title" style="color: ${color}">${escapeHtml(fault.fault_name)}</div>
+                <div class="alert-item-detail">Segment #${escapeHtml(fault.segment_id)} • ${escapeHtml(fault.location_km)} km • ${escapeHtml(fault.severity)}</div>
+                <div class="alert-item-time">${escapeHtml(fault.timestamp)}</div>
             </div>
         </div>`;
     }

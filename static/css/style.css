@@ -1284,6 +1284,13 @@ select:disabled {
     opacity: 0.5;
 }
 
+.inline-message {
+    padding: 12px;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    text-align: center;
+}
+
 
 /* ============================================================
    UTILITY ANIMATIONS
