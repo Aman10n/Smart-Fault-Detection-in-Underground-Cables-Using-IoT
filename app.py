@@ -31,6 +31,7 @@ import time
 import threading
 from datetime import datetime
 from collections import deque
+from functools import wraps
 
 # ============================================================
 # FLASK APPLICATION SETUP
@@ -120,6 +121,15 @@ FAULT_TYPES = {
                       'Caused by high-resistance connection or overloading.'
     }
 }
+
+
+def synchronized(method):
+    """Serialize access to mutable cable-network state."""
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        with self.lock:
+            return method(self, *args, **kwargs)
+    return wrapper
 
 
 # ============================================================
@@ -460,6 +470,7 @@ class CableNetwork:
     """
     
     def __init__(self):
+        self.lock = threading.RLock()
         self.segments = []
         self.fault_log = deque(maxlen=100)
         self.active_faults = {}
@@ -481,6 +492,7 @@ class CableNetwork:
         print(f"  [OK] Initialized {len(self.segments)} cable segments")
         print(f"  [OK] Deployed {len(self.segments) * 6} IoT sensors")
     
+    @synchronized
     def inject_fault(self, segment_id=None, fault_type=None):
         """Inject a fault into the cable network"""
         if segment_id is None:
@@ -543,6 +555,7 @@ class CableNetwork:
         
         return fault_info
     
+    @synchronized
     def clear_fault(self, segment_id=None):
         """Clear faults from the cable network"""
         if segment_id is None:
@@ -568,6 +581,7 @@ class CableNetwork:
                 seg.fault_type
             )
     
+    @synchronized
     def update(self):
         """Update all segment sensor readings"""
         for seg in self.segments:
@@ -576,6 +590,7 @@ class CableNetwork:
             else:
                 seg.update_normal()
     
+    @synchronized
     def get_overview(self):
         """Get system overview statistics"""
         healths = [s.health for s in self.segments]
@@ -600,6 +615,7 @@ class CableNetwork:
             'system_status': 'FAULT' if self.active_faults else 'NORMAL',
         }
     
+    @synchronized
     def get_temperature_profile(self):
         """Get temperature values along cable length"""
         return [
@@ -607,6 +623,7 @@ class CableNetwork:
             for s in self.segments
         ]
     
+    @synchronized
     def get_all_data(self):
         """Get complete system data package for WebSocket streaming"""
         return {
